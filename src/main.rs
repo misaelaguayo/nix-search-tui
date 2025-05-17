@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, process::{Command, Stdio}};
 
@@ -74,7 +75,12 @@ pub fn search_nix(search: &str) -> Result<Vec<SearchResult>> {
             })
             .collect();
 
-        Ok(res)
+        let filtered_results: Vec<SearchResult> = res
+            .into_iter()
+            .unique_by(|r| r.package_attr_name.clone())
+            .collect();
+
+        Ok(filtered_results)
     } else {
         Err(color_eyre::eyre::eyre!("Command failed to execute"))
     }
@@ -158,8 +164,6 @@ impl App {
                             Event::Key(key)
                                 if key.kind == KeyEventKind::Press
                                     => self.on_key_event(key),
-                            Event::Mouse(_) => {}
-                            Event::Resize(_, _) => {}
                             _ => {}
                         }
                     }
@@ -167,7 +171,6 @@ impl App {
                 }
             }
             _ = tokio::time::sleep(tokio::time::Duration::from_millis(100)) => {
-                // Sleep for a short duration to avoid busy waiting.
             }
         }
         Ok(())
