@@ -104,6 +104,15 @@ impl App {
     }
 
     pub async fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
+        let output = Command::new("which")
+            .arg("nix-search")
+            .output()
+            .expect("Failed to execute command");
+
+        if !output.status.success() {
+            return Err(color_eyre::eyre::eyre!("Could not find nix-search on path. Ensure it is installed before running this program."));
+        }
+
         self.running = true;
         while self.running {
             terminal.draw(|frame| self.draw(frame))?;
