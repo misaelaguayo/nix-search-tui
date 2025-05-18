@@ -1,12 +1,19 @@
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, process::{Command, Stdio}};
+use std::{
+    collections::HashMap,
+    process::{Command, Stdio},
+};
 
 use color_eyre::Result;
 use crossterm::event::{Event, EventStream, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use futures::{FutureExt, StreamExt};
 use ratatui::{
-    layout::{Constraint, Flex, Layout, Rect}, style::Color, text::{Line, Span}, widgets::{Block, List, ListItem, Paragraph}, DefaultTerminal, Frame
+    DefaultTerminal, Frame,
+    layout::{Constraint, Flex, Layout, Rect},
+    style::Color,
+    text::{Line, Span},
+    widgets::{Block, List, ListItem, Paragraph},
 };
 
 #[tokio::main]
@@ -62,17 +69,13 @@ pub fn search_nix(search: &str) -> Result<Vec<SearchResult>> {
     command.arg("search").arg(search);
     command.stdout(Stdio::piped());
 
-    let output = command
-        .output()
-        .expect("Failed to execute command");
+    let output = command.output().expect("Failed to execute command");
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let res: Vec<SearchResult> = stdout
             .lines()
-            .map(|line| {
-                return serde_json::from_str(line).unwrap()
-            })
+            .map(|line| return serde_json::from_str(line).unwrap())
             .collect();
 
         let filtered_results: Vec<SearchResult> = res
@@ -140,11 +143,21 @@ impl App {
             let highlighted_result = self
                 .highlighted_index
                 .and_then(|i| self.results.get(i))
-                .unwrap_or(&self.results[0]).clone();
+                .unwrap_or(&self.results[0])
+                .clone();
             let result_details: Vec<ListItem> = vec![
-                ListItem::new(Span::raw(format!("Package: {}", highlighted_result.package_attr_name))),
-                ListItem::new(Span::raw(format!("Description: {}", highlighted_result.package_description))),
-                ListItem::new(Span::raw(format!("Version: {}", highlighted_result.package_pversion))),
+                ListItem::new(Span::raw(format!(
+                    "Package: {}",
+                    highlighted_result.package_attr_name
+                ))),
+                ListItem::new(Span::raw(format!(
+                    "Description: {}",
+                    highlighted_result.package_description
+                ))),
+                ListItem::new(Span::raw(format!(
+                    "Version: {}",
+                    highlighted_result.package_pversion
+                ))),
             ];
             let popup_area = Self::popup_area(frame.area(), 60, 20);
             let popup = List::new(result_details)
@@ -199,17 +212,15 @@ impl App {
                 self.search.pop();
                 self.highlighted_index = None;
             }
-            (_, KeyCode::Enter) => {
-                match self.highlighted_index {
-                    Some(_) => {
-                        self.show_popup = true;
-                    }
-                    None => {
-                        self.results = self.search_nix();
-                        self.highlighted_index = Some(0);
-                    }
+            (_, KeyCode::Enter) => match self.highlighted_index {
+                Some(_) => {
+                    self.show_popup = true;
                 }
-            }
+                None => {
+                    self.results = self.search_nix();
+                    self.highlighted_index = Some(0);
+                }
+            },
             (_, KeyCode::Down) => {
                 if let Some(index) = self.highlighted_index {
                     if index < self.results.len() - 1 {

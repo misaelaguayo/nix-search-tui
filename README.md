@@ -5,6 +5,12 @@ Simple tui for search nix pkgs, requires [nix-search-cli](https://github.com/pet
 
 ![Example](https://github.com/user-attachments/assets/a804dfa7-e97b-4f2f-9577-859d3338c7b2)
 
+## Installation
+
+1. Nix
+```bash
+nix-build
+```
 ## License
 
 Copyright (c) Misael Aguayo <aguayo.misael@gmail.com>
