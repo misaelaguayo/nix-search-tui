@@ -154,7 +154,7 @@ impl App {
                 .and_then(|i| self.results.get(i))
                 .unwrap_or(&self.results[0])
                 .clone();
-            let result_details: Vec<ListItem> = vec![
+            let mut result_details: Vec<ListItem> = vec![
                 ListItem::new(Span::raw(format!(
                     "Package: {}",
                     highlighted_result.package_attr_name
@@ -168,6 +168,14 @@ impl App {
                     highlighted_result.package_pversion
                 ))),
             ];
+
+            if !highlighted_result.package_outputs.is_empty() {
+                result_details.push(ListItem::new(Span::raw(format!(
+                    "Programs: {}",
+                    highlighted_result.package_programs.join(", ")
+                ))));
+            }
+
             let popup_area = Self::popup_area(frame.area(), 60, 20);
             let popup = List::new(result_details)
                 .block(Block::bordered().title(highlighted_result.package_attr_name))
