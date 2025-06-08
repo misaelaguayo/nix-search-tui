@@ -15,7 +15,7 @@
       packages = forAllSystems (system:
         let pkgs = nixpkgs.legacyPackages.${system}; in rec {
           default = nix-search-tui;
-          nix-search-tui = pkgs.callPackage ./default.nix { };
+          nix-search-tui = pkgs.callPackage ./default.nix { nix-search-cli = pkgs.nix-search-cli; };
         });
 
       apps = forAllSystems (system: rec {
