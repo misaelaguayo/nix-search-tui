@@ -10,10 +10,10 @@ use crossterm::event::{Event, EventStream, KeyCode, KeyEvent, KeyEventKind, KeyM
 use futures::{FutureExt, StreamExt};
 use ratatui::{
     DefaultTerminal, Frame,
-    layout::{Constraint, Flex, Layout, Rect},
+    layout::{Alignment, Constraint, Flex, Layout, Rect},
     style::Color,
     text::{Line, Span},
-    widgets::{Block, List, ListItem, Paragraph},
+    widgets::{Block, Clear, List, ListItem, Padding, Paragraph},
 };
 
 #[tokio::main]
@@ -62,9 +62,11 @@ pub struct SearchResult {
     flake_resolved: FlakeResolved,
 }
 
+pub const MAX_SEARCH_LENGTH: usize = 100;
+
 pub fn search_nix(search: &str) -> Result<Vec<SearchResult>> {
     let mut command = Command::new("nix-search");
-    command.args(["--json", search]);
+    command.args(["--json", "-m", &MAX_SEARCH_LENGTH.to_string(), "-s", search]);
 
     command.arg("search").arg(search);
     command.stdout(Stdio::piped());
@@ -110,7 +112,9 @@ impl App {
             .expect("Failed to execute command");
 
         if !output.status.success() {
-            return Err(color_eyre::eyre::eyre!("Could not find nix-search on path. Ensure it is installed before running this program."));
+            return Err(color_eyre::eyre::eyre!(
+                "Could not find nix-search on path. Ensure it is installed before running this program."
+            ));
         }
 
         self.running = true;
@@ -145,8 +149,11 @@ impl App {
                 ListItem::new(Span::raw(&r.package_attr_name))
             })
             .collect();
-        let search_results = List::new(search_results).block(Block::bordered().title("Results"));
-        frame.render_widget(search_results, results_area);
+
+        let search_results_list =
+            List::new(search_results).block(Block::bordered().title("Results"));
+
+        frame.render_widget(search_results_list, results_area);
 
         if self.show_popup {
             let highlighted_result = self
@@ -154,31 +161,42 @@ impl App {
                 .and_then(|i| self.results.get(i))
                 .unwrap_or(&self.results[0])
                 .clone();
-            let mut result_details: Vec<ListItem> = vec![
-                ListItem::new(Span::raw(format!(
-                    "Package: {}",
-                    highlighted_result.package_attr_name
-                ))),
-                ListItem::new(Span::raw(format!(
+            let mut result_details: Vec<ListItem> = vec![ListItem::new(Span::raw(format!(
+                "Package: {}",
+                highlighted_result.package_attr_name
+            )))];
+
+            if !highlighted_result.package_description.is_empty() {
+                result_details.push(ListItem::new(Span::raw(format!(
                     "Description: {}",
                     highlighted_result.package_description
-                ))),
-                ListItem::new(Span::raw(format!(
+                ))));
+            }
+
+            if !highlighted_result.package_pversion.is_empty() {
+                result_details.push(ListItem::new(Span::raw(format!(
                     "Version: {}",
                     highlighted_result.package_pversion
-                ))),
-            ];
+                ))));
+            }
 
-            if !highlighted_result.package_outputs.is_empty() {
+            if !highlighted_result.package_programs.is_empty() {
                 result_details.push(ListItem::new(Span::raw(format!(
                     "Programs: {}",
                     highlighted_result.package_programs.join(", ")
                 ))));
             }
 
-            let popup_area = Self::popup_area(frame.area(), 60, 20);
+            let popup_area = Self::popup_area(frame.area(), 80, 40);
+
+            frame.render_widget(Clear, popup_area);
             let popup = List::new(result_details)
-                .block(Block::bordered().title(highlighted_result.package_attr_name))
+                .block(
+                    Block::bordered()
+                        .title(highlighted_result.package_attr_name)
+                        .title_alignment(Alignment::Center)
+                        .padding(Padding::uniform(1)),
+                )
                 .highlight_style(ratatui::style::Style::default().bg(Color::Blue));
             frame.render_widget(popup, popup_area);
         }
